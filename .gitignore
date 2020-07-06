@@ -1,0 +1,10 @@
+target/
+metastore_db/
+.idea/
+derby.log
+*.cache
+*.class
+*.iml
+*.log
+*$*
+*~*

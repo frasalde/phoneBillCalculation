@@ -4,9 +4,6 @@ import com.santander.mdc.Utils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Column, DataFrame, Dataset, Row, SparkSession}
 
-case class ControlRow(ctvr_IdControl: String, ctvr_Origen: String, ctvr_Tabla: String, ctvr_Variable: String, ctvr_Secuencia: Int, ctvr_Transformacion: String, ctvr_IdRegistro: String, ctvr_ClaveCruce: String)
-
-
 class MdcLogic(implicit spark: SparkSession) {
 
   import MdcLogic._
@@ -23,25 +20,11 @@ class MdcLogic(implicit spark: SparkSession) {
     val controlVariable: Dataset[ControlRow] = Utils.readTableByFilter(TABLA_CONTROL_VARIABLE, col("idControl").isin(controlesActivos)).as[ControlRow]
     val parametria: DataFrame = Utils.readTableByFilter(TABLA_PARAMETRIA, col("idControl").isin(controlesActivos))
 
-    //todo minusculas
-   //case class ControlRow(ctvr_IdControl: String, ctvr_Origen: String, ctvr_Tabla: String, ctvr_Variable: String, ctvr_Secuencia: Int, ctvr_Transformacion: String, ctvr_IdRegistro: String, ctvr_ClaveCruce: String)
-
 
     val controlRows: Array[ControlRow] = controlVariable.collect()
 
-/*    val controlRows: Array[ControlRow] = controlVariable.collect.map(r => ControlRow(
-      r.getAs[String]("ctvr_IdControl"),
-      r.getAs[String]("ctvr_Origen"),
-      r.getAs[String]("ctvr_Tabla"),
-      r.getAs[String]("ctvr_Variable"),
-      r.getAs[Int]("ctvr_Secuencia"),
-      r.getAs[String]("ctvr_Transformacion"),
-      r.getAs[String]("ctvr_IdRegistro"),
-      r.getAs[String]("ctvr_ClaveCruce")
 
-    ))*/
-
-    val controlRowsById: Map[String, Array[ControlRow]] = controlRows.groupBy(_.ctvr_IdControl)
+    val controlRowsById: Map[String, Array[ControlRow]] = controlRows.groupBy(_.ctvr_id_control)
 
     //////////////////////////////
     // Operación de concatenado //
@@ -50,7 +33,7 @@ class MdcLogic(implicit spark: SparkSession) {
 
       case (controlId: String, rows: Array[ControlRow]) =>
 
-        val usefulTables: Array[String] = rows.map(c => s"${c.ctvr_Origen}.${c.ctvr_Tabla}").distinct
+        val usefulTables: Array[String] = rows.map(c => s"${c.ctvr_origen}.${c.ctvr_tabla}").distinct
         val usefulDataFrames: Array[DataFrame] = usefulTables.map(getTable)
 
         //Join de todas las tablas necesarias para las columnas de este control_id
@@ -59,13 +42,13 @@ class MdcLogic(implicit spark: SparkSession) {
         //val dfAllColumns: DataFrame = usefulDataFrames.reduceLeft((df1, df2) => df1.join(df2, Seq("key"), "full"))
         val dfAllColumns: DataFrame = usefulDataFrames.head
 
-        val columnsToConcatI: Array[org.apache.spark.sql.Column] = rows.filter(_.ctvr_IdRegistro == "Identificador").sortBy(_.ctvr_Secuencia).map { r =>
-          getTable(s"${r.ctvr_Origen}.${r.ctvr_Tabla}").col(r.ctvr_Variable)
+        val columnsToConcatI: Array[org.apache.spark.sql.Column] = rows.filter(_.ctvr_tipo_registro == "Identificador").sortBy(_.ctvr_secuencia).map { r =>
+          getTable(s"${r.ctvr_origen}.${r.ctvr_tabla}").col(r.ctvr_variable)
           //TODO aplicar transformaciones
         }
 
-        val columnsToConcatV: Array[org.apache.spark.sql.Column] = rows.filter(_.ctvr_IdRegistro == "Valor").sortBy(_.ctvr_Secuencia).map { r =>
-          getTable(s"${r.ctvr_Origen}.${r.ctvr_Tabla}").col(r.ctvr_Variable)
+        val columnsToConcatV: Array[org.apache.spark.sql.Column] = rows.filter(_.ctvr_tipo_registro == "Valor").sortBy(_.ctvr_secuencia).map { r =>
+          getTable(s"${r.ctvr_origen}.${r.ctvr_tabla}").col(r.ctvr_variable)
           //TODO aplicar transformaciones
         }
 
@@ -82,13 +65,13 @@ class MdcLogic(implicit spark: SparkSession) {
         dfConcatenated
     }
 
-    val dfAControlar = resultDataFrames.reduceLeft((df1, df2) => df1.union(df2))
+    val dfAControlar = resultDataFrames.reduce(_ union _)
     dfAControlar.show
 
     //Cruce con la tabla de parametria
-    //todo condición también con controlId
-    //todo cuando ctvl_status = null -> ctvl_status = pd
-    val result: DataFrame = dfAControlar.join(parametria,  dfAControlar.col("rslt_valor_control") === parametria.col("rslt_valor_control"), "left")
+    val resultJoinCondition = dfAControlar.col("rslt_control_id") === parametria.col("ctvl_id_control").and(dfAControlar.col("rslt_valor_control") === parametria.col("ctvl_valor_control"))
+    val result: DataFrame = dfAControlar.join(parametria, resultJoinCondition, "left")
+        .withColumn("ctvl_status", when(col("ctvl_status").isNull, lit("pd")).otherwise(col("ctvl_status")))
 
     //Escritura
     Utils.writeResult(result, "bbddFinal", "resultados")

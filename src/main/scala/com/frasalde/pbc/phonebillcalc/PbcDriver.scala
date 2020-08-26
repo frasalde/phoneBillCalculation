@@ -1,4 +1,4 @@
-package com.santander.mdc.modelodecontrol
+package com.frasalde.pbc.phonebillcalc
 
 /**
  * @author ${user.name}
@@ -8,7 +8,7 @@ import org.apache.spark.sql.SparkSession
 /**
  * @author ${user.name}
  */
-object MdcDriver {
+object PbcDriver {
 
   def main(args : Array[String]) {
 
@@ -19,7 +19,7 @@ object MdcDriver {
       .getOrCreate()
 
     // instantiate logic module & run
-    val logic: MdcLogic = new MdcLogic
+    val logic: PbcLogic = new PbcLogic
     logic.run
 
     spark.stop()

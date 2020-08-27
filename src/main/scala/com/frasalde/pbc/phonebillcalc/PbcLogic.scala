@@ -21,6 +21,11 @@ class PbcLogic(implicit spark: SparkSession) {
    */
   def phonebillcalculation (callLogs: String): Int = {
 
+    val LogSize: Int = callLogs.split("\n").size
+    if (callLogs == "" || LogSize > 100) {
+      throw new Exception
+    }
+
     val phoneBills: Map[String, Array[String]] = callLogs.split("\n").groupBy(_.substring(9,20))
 
     val resultsMap: Map[String, Int] = phoneBills.map {

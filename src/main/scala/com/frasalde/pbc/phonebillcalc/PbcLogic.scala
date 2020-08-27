@@ -1,7 +1,6 @@
 package com.frasalde.pbc.phonebillcalc
 
 import org.apache.spark.sql._
-import org.apache.spark.sql.functions._
 
 class PbcLogic(implicit spark: SparkSession) {
 
@@ -21,6 +20,7 @@ class PbcLogic(implicit spark: SparkSession) {
    */
   def phonebillcalculation (callLogs: String): Int = {
 
+    // Check logs size
     val LogSize: Int = callLogs.split("\n").size
     if (callLogs == "" || LogSize > 100) {
       throw new Exception

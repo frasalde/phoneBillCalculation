@@ -1,5 +1,6 @@
 package com.frasalde.pbc.phonebillcalc
 
+import com.frasalde.pbc.Utils
 import org.apache.spark.sql._
 
 class PbcLogic(implicit spark: SparkSession) {
@@ -23,7 +24,7 @@ class PbcLogic(implicit spark: SparkSession) {
     // Check logs size
     val LogSize: Int = callLogs.split("\n").size
     if (callLogs == "" || LogSize > 100) {
-      throw new Exception
+      throw Utils.enrichException(new Exception, "Log size out of range")
     }
 
     val phoneBills: Map[String, Array[String]] = callLogs.split("\n").groupBy(_.substring(9,20))
@@ -35,11 +36,8 @@ class PbcLogic(implicit spark: SparkSession) {
         val allCents: Array[Int] = logs.map {
           l =>
             val totalHours: Int = l.substring(0, 2).toInt
-            println(s"total horas: " + totalHours)
             val totalMinutes: Int = l.substring(3, 5).toInt
-            println(s"total minutos: " + totalMinutes)
             val totalSeconds: Int = l.substring(6, 8).toInt
-            println(s"total segundos: " + totalSeconds)
 
             val totalCents: Int = if (totalMinutes < 5) {
               ((totalHours * 360) + (totalMinutes * 60) + totalSeconds) * 3

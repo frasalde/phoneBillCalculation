@@ -8,10 +8,10 @@ class PbcLogic(implicit spark: SparkSession) {
   /**
     * run method
    */
-  def run(): Unit = {
+  def run(): Int = {
 
     val callLogs: String = "00:01:07,400-234-090\n00:05:01,701-080-080\n00:05:00,400-234-090\n"
-    val result: Int = phonebillcalculation(callLogs)
+    phonebillcalculation(callLogs)
   }
 
   /**
@@ -56,5 +56,6 @@ class PbcLogic(implicit spark: SparkSession) {
     val resultTail: List[(String, Int)] = resultsMap.toList.sortBy(r => (r._1, r._2)).tail
     resultTail.map(_._2).sum
   }
+  run()
 
 }

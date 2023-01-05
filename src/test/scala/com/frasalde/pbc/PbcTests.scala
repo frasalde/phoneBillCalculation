@@ -8,7 +8,7 @@ class PbcTests extends FunSuite with BeforeAndAfterEach {
 
     implicit var sparkSession : SparkSession = _
     override def beforeEach() {
-    sparkSession = SparkSession.builder().appName("MDC testings")
+    sparkSession = SparkSession.builder().appName("PBC testings")
         .master("local")
         .config("", "")
         .enableHiveSupport()
